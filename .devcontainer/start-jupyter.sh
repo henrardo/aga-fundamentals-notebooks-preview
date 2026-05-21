@@ -26,7 +26,7 @@ if ! command -v jupyter > /dev/null 2>&1; then
 fi
 
 echo "[jupyter] $(date) starting jupyter server" >> "$LOG"
-nohup jupyter server \
+SHELL=/bin/bash nohup jupyter server \
     --ip=0.0.0.0 \
     --port=8888 \
     --no-browser \
@@ -36,7 +36,6 @@ nohup jupyter server \
     --ServerApp.allow_origin='*' \
     --ServerApp.allow_remote_access=True \
     --ServerApp.root_dir="${PWD}" \
-    --TerminalManager.shell_command="['/bin/bash']" \
     >> "$LOG" 2>&1 &
 
 # Quick readiness probe so the lifecycle hook returns a useful status.
