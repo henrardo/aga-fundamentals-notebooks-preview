@@ -1,28 +1,31 @@
 #!/usr/bin/env bash
-# Start a long-running Jupyter server on port 8888.
+# Idempotently start a long-running Jupyter server on port 8888.
 #
-# Auth model: the port is forwarded as `private` in devcontainer.json, so only
-# the codespace owner (or someone with an authenticated tunnel) can reach it.
-# The Jupyter server itself runs without a token/password so that the
-# GraphAcademy kernel bridge can talk to it via the forwarded port without an
-# additional credential negotiation.
+# Wired up to multiple devcontainer lifecycle hooks (postCreateCommand,
+# postStartCommand, postAttachCommand) because Codespaces doesn't reliably
+# fire all of them for API-created codespaces. The port-based readiness check
+# makes repeated invocations no-ops.
 #
-# CORS is permissive (allow_origin=*) because the bridge connects from a
-# different origin (graphacademy.neo4j.com or localhost:3001 in dev).
+# Auth model: the Jupyter server runs with no token / no password. The
+# forwarded port's GitHub-side visibility is the auth boundary. Inside the
+# codespace, port 8888 is reachable as http://localhost:8888 with no auth.
 set -euo pipefail
 
-# Idempotent — if Jupyter is already running, do nothing.
-if pgrep -f "jupyter-server" > /dev/null; then
-    echo "[jupyter] already running"
+LOG=/tmp/jupyter.log
+
+# Already running? (Port-based check — process-name matching is fragile.)
+if curl -s --max-time 2 http://localhost:8888/api/status > /dev/null 2>&1; then
+    echo "[jupyter] already running on port 8888"
     exit 0
 fi
 
-# Make sure jupyter is installed (covers the case where setup.sh hasn't run yet).
-if ! command -v jupyter > /dev/null; then
+# Install Jupyter if it's somehow missing (requirements.txt usually covers this).
+if ! command -v jupyter > /dev/null 2>&1; then
+    echo "[jupyter] jupyter binary not found, installing..."
     pip install --quiet jupyter jupyter-server
 fi
 
-LOG=/tmp/jupyter.log
+echo "[jupyter] $(date) starting jupyter server" >> "$LOG"
 nohup jupyter server \
     --ip=0.0.0.0 \
     --port=8888 \
@@ -33,6 +36,17 @@ nohup jupyter server \
     --ServerApp.allow_origin='*' \
     --ServerApp.allow_remote_access=True \
     --ServerApp.root_dir="${PWD}" \
-    > "${LOG}" 2>&1 &
+    >> "$LOG" 2>&1 &
 
-echo "[jupyter] starting on port 8888 (logs: ${LOG})"
+# Quick readiness probe so the lifecycle hook returns a useful status.
+for i in 1 2 3 4 5 6 7 8; do
+    if curl -s --max-time 2 http://localhost:8888/api/status > /dev/null 2>&1; then
+        echo "[jupyter] started on port 8888 (logs: $LOG)"
+        exit 0
+    fi
+    sleep 1
+done
+
+echo "[jupyter] failed to come up in 8 seconds; check $LOG"
+tail -n 30 "$LOG" 2>/dev/null
+exit 1

@@ -1,9 +1,9 @@
 {
   "name": "Aura Graph Analytics Fundamentals",
   "image": "mcr.microsoft.com/devcontainers/python:1-3.11-bookworm",
-  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postCreateCommand": "bash .devcontainer/setup.sh && bash .devcontainer/start-jupyter.sh",
   "postStartCommand": "bash .devcontainer/start-jupyter.sh",
-  "postAttachCommand": "echo '' && echo 'Setup complete. Jupyter running on port 8888.' && echo '' && echo 'Next steps:' && echo '  1. Copy env.template to .env:  cp env.template .env' && echo '  2. Edit .env and fill in your Aura credentials' && echo '  3. Use GraphAcademy to run notebook cells, or open notebooks/1_connect.ipynb here' && echo ''",
+  "postAttachCommand": "bash .devcontainer/start-jupyter.sh && echo '' && echo 'Codespace ready. Jupyter running on port 8888.' && echo ''",
   "forwardPorts": [8888],
   "portsAttributes": {
     "8888": {
