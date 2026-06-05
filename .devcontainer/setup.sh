@@ -12,9 +12,12 @@ pip install -r requirements.txt
 # `ghcr.io/devcontainers/features/sshd` feature because that feature breaks
 # the devcontainer build on the Microsoft Python image (Error 1302).
 echo "Installing openssh-server..."
-sudo apt-get update -qq
-sudo apt-get install -y -qq openssh-server
-sudo mkdir -p /var/run/sshd
+sudo apt-get update
+sudo apt-get install -y openssh-server
+# sshd looks for /run/sshd, not /var/run/sshd — the /var/run -> /run symlink
+# isn't set up before systemd is installed, so the two are distinct paths
+# at this point in the build. Create the actual directory sshd opens.
+sudo mkdir -p /run/sshd
 sudo ssh-keygen -A
 sudo /usr/sbin/sshd
 echo "openssh-server running."
