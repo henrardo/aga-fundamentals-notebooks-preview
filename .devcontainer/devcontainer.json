@@ -4,9 +4,6 @@
   "remoteEnv": {
     "GA_AGA_PROXY_URL": "http://localhost:3000/api/aga-proxy"
   },
-  "features": {
-    "ghcr.io/devcontainers/features/sshd:1": { "version": "latest" }
-  },
   "postCreateCommand": "bash .devcontainer/setup.sh && bash .devcontainer/postCreate.sh && bash .devcontainer/start-jupyter.sh",
   "postStartCommand": "bash .devcontainer/start-jupyter.sh",
   "postAttachCommand": "bash .devcontainer/start-jupyter.sh && echo '' && echo 'Codespace ready. Jupyter running on port 8888.' && echo ''",
