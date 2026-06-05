@@ -38,8 +38,12 @@ SHELL=/bin/bash nohup jupyter server \
     --ServerApp.root_dir="${PWD}" \
     >> "$LOG" 2>&1 &
 
-# Quick readiness probe so the lifecycle hook returns a useful status.
-for i in 1 2 3 4 5 6 7 8; do
+# Readiness probe — 30s upper bound. Fresh Codespaces routinely take 10-20
+# seconds for jupyter-server to finish importing extensions and bind to the
+# socket. The previous 8s window tripped postCreateCommand reliably with no
+# functional impact (jupyter is nohup-backgrounded and keeps starting), but
+# left a misleading "exit code 1" in the creation log.
+for i in $(seq 1 30); do
     if curl -s --max-time 2 http://localhost:8888/api/status > /dev/null 2>&1; then
         echo "[jupyter] started on port 8888 (logs: $LOG)"
         exit 0
@@ -47,6 +51,6 @@ for i in 1 2 3 4 5 6 7 8; do
     sleep 1
 done
 
-echo "[jupyter] failed to come up in 8 seconds; check $LOG"
+echo "[jupyter] failed to come up in 30 seconds; check $LOG"
 tail -n 30 "$LOG" 2>/dev/null
 exit 1
